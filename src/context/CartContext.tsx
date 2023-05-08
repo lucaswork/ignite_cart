@@ -1,4 +1,4 @@
-import { createContext, useEffect, useRef, useState } from "react";
+import { createContext, useState } from "react";
 import { toast } from "react-toastify";
 import {
   CartContextData,
@@ -14,62 +14,36 @@ export const CartContext = createContext<CartContextData>(
 
 export function CartProvider({ children }: CartProviderProps): JSX.Element {
   const [cart, setCart] = useState<Product[]>(() => {
-    const storagedCart = localStorage.getItem(`${ROCKET_SHOES}`);
-    if(storagedCart) {
-      return JSON.parse(storagedCart)
+    const storagedCart = localStorage.getItem(ROCKET_SHOES);
+    if (storagedCart) {
+      return JSON.parse(storagedCart);
     }
     return [];
   });
 
-  const prevCartRef = useRef<Product[]>();
-
-  useEffect(() => {
-    prevCartRef.current = cart;
-  });
-
-  const cartPreviousValue = prevCartRef.current ?? cart;
-
-  useEffect(() => {
-    if (cartPreviousValue.length !== cart.length) {
-      localStorage.setItem(`${ROCKET_SHOES}`, JSON.stringify(cart));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const addProduct = async (productId: number) => {
     try {
-      const updatedCart = [...cart];
-      const productExists = updatedCart.find(
-        (product) => product.id === productId
-      );
+      const { data: stock } = await getProductFromStock(productId);
+      const stockAmount  = stock.amount;
 
-      const stock = await getProductFromStock(productId);
+      const newCart = [...cart];
+      const index = newCart.findIndex(p => p.id === productId)
 
-      const stockAmount = stock.data.amount;
-      const currentAmount = productExists ? productExists.amount : 0;
-      const amount = currentAmount + 1;
-
-      if (amount > stockAmount) {
-        toast.error("Quantidade solicitada fora de estoque");
-        return;
+      if (index >= 0 && stockAmount <= newCart[index].amount) {
+        toast.error('Quantidade solicitada fora de estoque')
+        return
       }
 
-      if (productExists) {
-        productExists.amount = amount;
-        // setCart((oldState) =>
-        //   oldState.map((p) =>
-        //     p.id === productId ? { ...p, amount: amount } : p
-        //   )
-        // );
-      } else {
-        const product = await getProduct(productId);
-        const newProduct = {
-          ...product.data,
-          amount: 1,
-        };
-        updatedCart.push(newProduct);
-        setCart(updatedCart);
+      if (index >= 0)
+        newCart[index].amount++;
+      else {
+        const { data: product } = await getProduct(productId)
+        newCart.push({ ...product, amount: 1 })
       }
+      
+      setCart(newCart)
+      localStorage.setItem(ROCKET_SHOES, JSON.stringify(newCart));
     } catch {
       toast.error("Erro na adição do produto");
     }
@@ -77,11 +51,11 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const removeProduct = (productId: number) => {
     try {
-      const updatedCart = [...cart];
-      const productIndex = updatedCart.findIndex((p) => p.id === productId);
+      const productIndex = cart.findIndex((p) => p.id === productId);
       if (productIndex >= 0) {
-        updatedCart.splice(productIndex, 1);
-        setCart(updatedCart);
+        let newCart = cart.filter(item => item.id !== productId);
+        setCart(newCart);
+        localStorage.setItem(ROCKET_SHOES, JSON.stringify(newCart));
       } else {
         throw Error();
       }
@@ -112,6 +86,7 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
       if (productExists) {
         productExists.amount = amount;
+        localStorage.setItem(ROCKET_SHOES, JSON.stringify(updatedCart));
         setCart(updatedCart);
       } else {
         throw Error();

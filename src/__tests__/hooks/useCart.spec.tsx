@@ -122,7 +122,7 @@ describe("useCart Hook", () => {
       ])
     );
     expect(mockedSetItemLocalStorage).toHaveBeenCalledWith(
-      `${ROCKET_SHOES}`,
+      ROCKET_SHOES,
       JSON.stringify(result.current.cart)
     );
   });
@@ -202,7 +202,7 @@ describe("useCart Hook", () => {
       ])
     );
     expect(mockedSetItemLocalStorage).toHaveBeenCalledWith(
-      `${ROCKET_SHOES}`,
+      ROCKET_SHOES,
       JSON.stringify(result.current.cart)
     );
   });
@@ -333,7 +333,7 @@ describe("useCart Hook", () => {
       ])
     );
     expect(mockedSetItemLocalStorage).toHaveBeenCalledWith(
-      `${ROCKET_SHOES}`,
+      ROCKET_SHOES,
       JSON.stringify(result.current.cart)
     );
   });
