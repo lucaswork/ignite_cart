@@ -8,15 +8,17 @@ import {
 } from "../types";
 import { getProduct, getProductFromStock } from "services/Stock";
 import { ROCKET_SHOES } from "storage";
-import _ from "lodash";
 export const CartContext = createContext<CartContextData>(
   {} as CartContextData
 );
 
 export function CartProvider({ children }: CartProviderProps): JSX.Element {
   const [cart, setCart] = useState<Product[]>(() => {
-    const storagedCart = localStorage.getItem(ROCKET_SHOES);
-    return storagedCart ? JSON.parse(storagedCart) : [];
+    const storagedCart = localStorage.getItem(`${ROCKET_SHOES}`);
+    if(storagedCart) {
+      return JSON.parse(storagedCart)
+    }
+    return [];
   });
 
   const prevCartRef = useRef<Product[]>();
@@ -29,21 +31,21 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   useEffect(() => {
     if (cartPreviousValue.length !== cart.length) {
-      localStorage.setItem(ROCKET_SHOES, JSON.stringify(cart));
+      localStorage.setItem(`${ROCKET_SHOES}`, JSON.stringify(cart));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const addProduct = async (productId: number) => {
     try {
-      const updatedCart = _.cloneDeep(cart);
+      const updatedCart = [...cart];
       const productExists = updatedCart.find(
         (product) => product.id === productId
       );
 
-      const { data } = await getProductFromStock(productId);
+      const stock = await getProductFromStock(productId);
 
-      const stockAmount = data.amount;
+      const stockAmount = stock.data.amount;
       const currentAmount = productExists ? productExists.amount : 0;
       const amount = currentAmount + 1;
 
@@ -54,15 +56,15 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
       if (productExists) {
         productExists.amount = amount;
-        setCart((oldState) =>
-          oldState.map((p) =>
-            p.id === productId ? { ...p, amount: amount } : p
-          )
-        );
+        // setCart((oldState) =>
+        //   oldState.map((p) =>
+        //     p.id === productId ? { ...p, amount: amount } : p
+        //   )
+        // );
       } else {
-        const { data } = await getProduct(productId);
+        const product = await getProduct(productId);
         const newProduct = {
-          ...data,
+          ...product.data,
           amount: 1,
         };
         updatedCart.push(newProduct);
